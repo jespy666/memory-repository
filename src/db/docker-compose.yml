@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: mr-postgres
+    environment:
+      POSTGRES_USER: mr-user
+      POSTGRES_PASSWORD: mr-secret-password
+      POSTGRES_DB: memory-repository
+    ports:
+      - "5228:5432"
+    volumes:
+      - mr-data:/var/lib/postgresql/data
+    command: >
+      postgres -c max_connections=1000
+               -c shared_buffers=256MB
+               -c effective_cache_size=768MB
+               -c maintenance_work_mem=64MB
+               -c checkpoint_completion_target=0.7
+               -c wal_buffers=16MB
+               -c default_statistics_target=100
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U mr-user -d memory-repository" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    networks:
+      - mem-rep
+
+volumes:
+  mr-data:
+
+networks:
+  mem-rep:
+    driver: bridge

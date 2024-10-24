@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "memory-repository"
+version = "0.1.0"
+description = "A mini social network"
+authors = ["Anthony Sergeevich <jespy.kz@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.3"
+asyncpg = "^0.30.0"
+sqlalchemy = "^2.0.36"
+pydantic = "^2.9.2"
+alembic = "^1.13.3"
+pydantic-settings = "^2.6.0"
+uvicorn = "^0.32.0"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

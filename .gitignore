@@ -1,0 +1,8 @@
+.env
+db.sqlite3
+.idea/
+*.pyc
+__pycache__/
+.coverage
+coverage.xml
+venv/

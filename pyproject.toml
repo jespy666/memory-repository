@@ -10,10 +10,13 @@ python = "^3.12"
 fastapi = "^0.115.3"
 asyncpg = "^0.30.0"
 sqlalchemy = "^2.0.36"
-pydantic = "^2.9.2"
+pydantic = {extras = ["email"], version = "^2.9.2"}
 alembic = "^1.13.3"
 pydantic-settings = "^2.6.0"
 uvicorn = "^0.32.0"
+passlib = "^1.7.4"
+pyjwt = "^2.9.0"
+python-multipart = "^0.0.16"
 
 
 [tool.poetry.group.dev.dependencies]

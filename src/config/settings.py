@@ -11,10 +11,29 @@ load_dotenv()
 class Settings(BaseSettings):
 
     # postgres related settings
-    POSTGRES_USER = os.getenv('POSTGRES_USER')
-    POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
-    POSTGRES_DB = os.getenv('POSTGRES_DB')
-    POSTGRES_PORT = os.getenv('POSTGRES_PORT')
+    POSTGRES_USER: str = os.getenv('POSTGRES_USER')
+    POSTGRES_PASSWORD: str = os.getenv('POSTGRES_PASSWORD')
+    POSTGRES_DB: str = os.getenv('POSTGRES_DB')
+    POSTGRES_PORT: int = os.getenv('POSTGRES_PORT')
+    POSTGRES_HOST: str = os.getenv('POSTGRES_HOST')
+
+    # JWT related settings
+    SECRET_KEY: str = os.getenv('SECRET_KEY')
+    ALGORITHM: str = os.getenv('ALGORITHM')
+    TOKEN_EXPIRE_MINUTES: int = os.getenv('TOKEN_EXPIRE_MINUTES')
+
+    # SMTP related settings
+    SMTP_HOST: str = os.getenv('SMTP_HOST')
+    SMTP_USER: str = os.getenv('SMTP_USER')
+    SMTP_PASSWORD: str = os.getenv('SMTP_PASSWORD')
+    SMTP_PORT: int = os.getenv('SMTP_PORT')
+
+    def get_connection_string(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:"
+            f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
+            f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
 
 settings = Settings()

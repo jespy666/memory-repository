@@ -6,12 +6,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 
 from src.users.crud import UserCRUD
-from src.auth.crud import AuthCRUD
 from src.users.models import User
 from src.users.schemas import UserSchema
-from .schemas import UserCreate, Token
-from .utils import create_access_token, verify_token, verify_password
+
 from src.mail import send_activation_email, send_welcome_msg
+
+from .schemas import UserCreate, Token
+from .utils import issue_token, verify_token, verify_password
+from .crud import AuthCRUD
 
 from src.config import settings
 
@@ -47,8 +49,8 @@ async def sign_up(user: UserCreate, request: Request) -> UserSchema:
             detail='User with same email already exist'
         )
     new_user: UserSchema = await crud.create_user(user)
-    access_token: str = create_access_token(
-        {'sub': new_user.email},
+    access_token: str = issue_token(
+        data={'sub': new_user.email},
         expires_delta=SIGNUP_EXP_MINUTES
     )
     await send_activation_email(request, new_user.email, access_token)
@@ -94,7 +96,10 @@ async def login(
         Token schema.
     """
     crud = UserCRUD()
-    user: Optional[User] = await crud.get_user('email', form_data.username)
+    user: Optional[User] = await crud.get_user(
+        'email',
+        form_data.username
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -105,16 +110,24 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Wrong password'
         )
-    access_token = create_access_token(
+    access_token = issue_token(
         data={"sub": form_data.username},
-        expires_delta=settings.TOKEN_EXPIRE_MINUTES
+        expires_delta=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+    refresh_token = issue_token(
+        data={"sub": form_data.username},
+        expires_delta=settings.REFRESH_TOKEN_EXPIRE_MINUTES
     )
 
     response = JSONResponse(content={"message": "Login success"})
     response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=True,
-        max_age=1800
+        httponly=True
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True
     )
     return response

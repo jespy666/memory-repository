@@ -6,7 +6,10 @@ from typing import List, Sequence, Optional, TypeVar, Union, Dict
 from .schemas import UserSchema, UserUpdate
 from .models import User
 from .crud import UserCRUD
+
 from src.depends import get_current_user
+
+from src import exceptions as exc
 
 
 user_router = APIRouter(prefix='/users')
@@ -42,10 +45,8 @@ async def get_users(
         List of users or empty list.
     """
     if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Access denied'
-        )
+        raise exc.AccessDeniedException
+
     crud = UserCRUD()
     users: Sequence[User] = await crud.get_all_users()
     return users if users else []
@@ -66,11 +67,9 @@ async def get_user(
     Returns:
         Current user.
     """
+
     if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Access denied'
-        )
+        raise exc.AccessDeniedException
 
     crud = UserCRUD()
     user: Optional[User] = await crud.get_user('id', user_id)
@@ -95,10 +94,7 @@ async def delete_user(
         current_user (User obj.): Current user from cookies.
     """
     if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Access denied'
-        )
+        raise exc.AccessDeniedException
 
     crud = UserCRUD()
     await crud.delete_user('id', user_id)
@@ -121,11 +117,8 @@ async def update_user(
         HTTPException: If user trying to change another user or user does not
         exist.
     """
-    if not current_user.id == user_id or not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Access denied'
-        )
+    if not (current_user.id == user_id or current_user.is_admin):
+        raise exc.AccessDeniedException
 
     crud = UserCRUD()
     updated_user: User = await crud.update_user('id', user_id, data)

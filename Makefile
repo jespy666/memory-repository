@@ -2,6 +2,9 @@ REVISION_CMD = poetry run alembic revision --autogenerate -m
 
 .PHONY: migrations run
 
+install:
+	poetry install
+
 migrations:
 	$(REVISION_CMD) "$(shell read -p 'Enter migration name: ' msg; echo $$msg)"
 

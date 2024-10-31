@@ -2,7 +2,7 @@ import secrets
 
 from typing import TypeVar, Sequence, Dict, Optional
 
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, delete
 
 from .models import User
 from .schemas import UserSchema
@@ -92,7 +92,7 @@ class UserCRUD(AsyncSessionFactory):
         return UserSchema(
             email=user.email,
             password=user.password,
-            username=username
+            name=user.name
         )
 
     async def delete_user(self, field: str, value: T) -> None:
@@ -137,8 +137,12 @@ class UserCRUD(AsyncSessionFactory):
 
         session: AsyncSession = await super().get_session()
         try:
-            stmt = update(User).values(**data)
-            await session.execute(stmt)
+            for key, val in data.items():
+                if hasattr(user, key):
+                    setattr(user, key, val)
+                else:
+                    raise exc.NonExistedAttributeException
+            session.add(user)
             await session.commit()
             await session.refresh(user)
             return user

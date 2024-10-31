@@ -51,3 +51,16 @@ class NonExistedAttributeException(HTTPException):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=detail
         )
+
+
+class NonActiveUserException(HTTPException):
+    """
+    Exception template for find object in DB. If given field does not exist.
+    """
+
+    def __init__(self) -> None:
+        detail = 'Account is inactive, check your email'
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=detail
+        )

@@ -13,3 +13,9 @@ dev:
 
 lint:
 	poetry run ruff check
+
+test:
+	poetry run pytest --disable-warnings
+
+cov:
+	poetry run pytest --disable-warnings --cov=src

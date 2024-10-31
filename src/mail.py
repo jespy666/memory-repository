@@ -1,5 +1,7 @@
 import smtplib
 
+from src import logger
+
 from email.mime.text import MIMEText
 
 from fastapi import Request
@@ -64,3 +66,23 @@ async def send_welcome_msg(to_addr: str) -> None:
             settings.SMTP_USER, to_addr,
             message.as_string()
         )
+
+
+async def send_activation_email_task(
+        request: Request,
+        email: str,
+        token: str
+) -> None:
+    """
+    Background task for activation email.
+    """
+    await send_activation_email(request, email, token)
+    logger.info('Activation letter was send')
+
+
+async def send_welcome_msg_task(to_addr: str) -> None:
+    """
+    Background task for welcome email.
+    """
+    await send_welcome_msg(to_addr)
+    logger.info('Welcome letter was send')

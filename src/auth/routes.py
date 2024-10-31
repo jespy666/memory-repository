@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Annotated
 
-from fastapi import HTTPException, status, Request, Depends
+from fastapi import HTTPException, status, Request, Depends, BackgroundTasks
 from fastapi.routing import APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
@@ -9,10 +9,13 @@ from src.users.crud import UserCRUD
 from src.users.models import User
 from src.users.schemas import UserSchema
 
-from src.mail import send_activation_email, send_welcome_msg
+from src.mail import (
+    send_activation_email_task,
+    send_welcome_msg_task
+)
 
-from .schemas import UserCreate, Token
-from .utils import issue_token, verify_token, verify_password
+from src.auth.schemas import UserCreate, Token
+from src.auth.utils import verify_token, issue_token, verify_password
 
 from src.config import settings
 
@@ -21,21 +24,24 @@ from src import exceptions as exc
 
 auth_router = APIRouter()
 
-SIGNUP_EXP_MINUTES = 5
-
 
 @auth_router.post(
     '/signup/',
     response_model=UserCreate,
     status_code=status.HTTP_201_CREATED
 )
-async def sign_up(user: UserCreate, request: Request) -> UserSchema:
+async def sign_up(
+        user: UserCreate,
+        request: Request,
+        background_tasks: BackgroundTasks
+) -> UserSchema:
     """
     Registration endpoint.
 
     Args:
         user (UserCreate): User schema for sign up.
         request: A Starlette request object.
+        background_tasks: FastAPI background tasks object.
     Returns:
         UserCreate: Created user data without password.
     """
@@ -50,32 +56,43 @@ async def sign_up(user: UserCreate, request: Request) -> UserSchema:
             detail='User with same email already exist'
         )
     new_user: UserSchema = await crud.create_user(user)
-    access_token: str = issue_token(
+    activation_token: str = issue_token(
         data={'sub': new_user.email},
-        expires_delta=SIGNUP_EXP_MINUTES
+        expires_delta=settings.ACTIVATE_TOKEN_EXPIRE_MINUTES
     )
-    await send_activation_email(request, new_user.email, access_token)
+    # send activation email
+    background_tasks.add_task(
+        send_activation_email_task,
+        request,
+        new_user.email,
+        activation_token
+    )
     return new_user
 
 
 @auth_router.get('/activate/')
-async def activate_account(token: str) -> Dict[str, str]:
+async def activate_account(
+        token: str,
+        background_tasks: BackgroundTasks
+) -> Dict[str, str]:
     """
     User activation endpoint.
 
     Args:
         token (string): JWT token from email link.
+        background_tasks: FastAPI background tasks object.
     Raises:
         HTTPException: If impossible to decode a token.
         HTTPException: If impossible to find a user.
     """
-
-    email: str = verify_token(token)
+    email: Optional[str] = await verify_token(token)
     if not email:
         raise exc.InvalidTokenException
     crud = UserCRUD()
     await crud.update_user('email', email, data={'is_active': True})
-    await send_welcome_msg(email)
+
+    # send welcome letter
+    background_tasks.add_task(send_welcome_msg_task, email)
     return {
         'message': 'Your account is active now!'
     }

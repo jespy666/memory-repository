@@ -1,13 +1,21 @@
+import asyncio
+
 from fastapi.routing import APIRouter
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Request
 
 from typing import List, Sequence, Optional, TypeVar, Union, Dict
 
-from .schemas import UserSchema, UserUpdate
-from .models import User
-from .crud import UserCRUD
+from src.config import settings
 
-from src.depends import get_current_user
+from src.mail import send_activation_email_task
+
+from src.auth.utils import issue_token
+
+from src.users.schemas import UserSchema, UserUpdate
+from src.users.models import User
+from src.users.crud import UserCRUD
+
+from src.depends import user_dependency
 
 from src import exceptions as exc
 
@@ -18,24 +26,40 @@ T = TypeVar('T', bound=Union[str, int])
 
 
 @user_router.get('/me/', response_model=UserSchema)
-async def show_me(
-        current_user: User = Depends(get_current_user)
-) -> User:
+async def show_me(current_user: user_dependency, request: Request) -> User:
     """
     Show user himself.
 
     Args:
-         current_user (User obj.): Current user from cookies.
+        current_user (User obj.): Current user from cookies.
+        request: Starlette request object.
     Returns:
         User schema.
     """
+    # assume user is active, raise exc otherwise
+    if current_user.is_active is False:
+        email: str = current_user.email
+        activation_token: str = issue_token(
+            data={'sub': email},
+            expires_delta=settings.ACTIVATE_TOKEN_EXPIRE_MINUTES
+        )
+
+        # send confirmation letter again
+        asyncio.create_task(
+                send_activation_email_task(
+                request,
+                email,
+                activation_token
+            )
+        )
+
+        raise exc.NonActiveUserException
+
     return current_user
 
 
 @user_router.get('/', response_model=List[UserSchema])
-async def get_users(
-        current_user: User = Depends(get_current_user)
-) -> Optional[Sequence[User]]:
+async def get_users(current_user: user_dependency) -> Optional[Sequence[User]]:
     """
     Getting all users from db. Require admin rights.
 
@@ -55,8 +79,8 @@ async def get_users(
 
 @user_router.get('/{user_id}/', response_model=UserSchema)
 async def get_user(
-        user_id: int,
-        current_user: User = Depends(get_current_user)
+        current_user: user_dependency,
+        user_id: int
 ) -> User:
     """
     Getting user by user id. Require admin rights.
@@ -83,8 +107,8 @@ async def get_user(
 
 @user_router.delete('/{user_id}/', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-        user_id: int,
-        current_user: User = Depends(get_current_user)
+        current_user: user_dependency,
+        user_id: int
 ) -> None:
     """
     Delete user from DB. Require admin rights.
@@ -102,9 +126,9 @@ async def delete_user(
 
 @user_router.put('/{user_id}/', response_model=UserUpdate)
 async def update_user(
+        current_user: user_dependency,
         user_id: int,
-        data: Dict[str, T],
-        current_user: User = Depends(get_current_user)
+        data: Dict[str, T]
 ) -> User:
     """
     Update user fields. Personality required.

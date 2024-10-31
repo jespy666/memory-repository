@@ -21,6 +21,49 @@ python-multipart = "^0.0.16"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.7.0"
+pytest = "^8.3.3"
+httpx = "^0.27.2"
+pytest-asyncio = "^0.24.0"
+pytest-cov = "^6.0.0"
+
+[tool.ruff]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "*test*"
+]
+
+line-length = 79
+indent-width = 4
+
+target-version = "py38"
+
+[tool.ruff.lint]
+ignore = ["F403", "F405"]
 
 [build-system]
 requires = ["poetry-core"]

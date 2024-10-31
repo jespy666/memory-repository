@@ -53,7 +53,7 @@ def issue_token(data: Dict[str, V], expires_delta: int) -> str:
     return encoded_jwt
 
 
-def verify_token(token: str) -> str:
+async def verify_token(token: str) -> str:
     """
     Verify JWT token validity.
 

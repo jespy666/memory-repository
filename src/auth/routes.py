@@ -123,6 +123,7 @@ async def login(
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
-        httponly=True
+        httponly=True,
+        expires=7200
     )
     return response

@@ -13,9 +13,10 @@ from src.mail import send_activation_email, send_welcome_msg
 
 from .schemas import UserCreate, Token
 from .utils import issue_token, verify_token, verify_password
-from .crud import AuthCRUD
 
 from src.config import settings
+
+from src import exceptions as exc
 
 
 auth_router = APIRouter()
@@ -30,11 +31,11 @@ SIGNUP_EXP_MINUTES = 5
 )
 async def sign_up(user: UserCreate, request: Request) -> UserSchema:
     """
-    Endpoint for signing up a new user.
+    Registration endpoint.
 
     Args:
         user (UserCreate): User schema for sign up.
-        request: A FastAPI request object.
+        request: A Starlette request object.
     Returns:
         UserCreate: Created user data without password.
     """
@@ -71,12 +72,9 @@ async def activate_account(token: str) -> Dict[str, str]:
 
     email: str = verify_token(token)
     if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Invalid or expired token'
-        )
-    crud = AuthCRUD()
-    await crud.activate_user(email)
+        raise exc.InvalidTokenException
+    crud = UserCRUD()
+    await crud.update_user('email', email, data={'is_active': True})
     await send_welcome_msg(email)
     return {
         'message': 'Your account is active now!'
@@ -101,10 +99,7 @@ async def login(
         form_data.username
     )
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='User not found'
-        )
+        raise exc.UserNotFoundException
     if not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

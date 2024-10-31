@@ -1,6 +1,6 @@
 import secrets
 
-from typing import TypeVar, Union, Sequence, Dict, Optional
+from typing import TypeVar, Sequence, Dict, Optional
 
 from sqlalchemy import select, delete, update
 
@@ -15,7 +15,8 @@ from src.auth.utils import hash_password
 from src import exceptions as exc
 
 
-T = TypeVar('T', bound=Union[str, int])
+T = TypeVar('T', str, int, bool)
+U = TypeVar('U', str, int, bool)
 
 
 class UserCRUD(AsyncSessionFactory):
@@ -116,7 +117,7 @@ class UserCRUD(AsyncSessionFactory):
             self,
             field: str,
             value: T,
-            data: Dict[str, T]
+            data: Dict[str, U]
     ) -> User:
         """
         Update user.

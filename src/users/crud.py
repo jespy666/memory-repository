@@ -1,17 +1,22 @@
 import secrets
-from typing import TypeVar, Union, Sequence, Dict
+
+from typing import TypeVar, Sequence, Dict, Optional
 
 from sqlalchemy import select, delete, update
-from fastapi import HTTPException, status
 
-from src.session import AsyncSessionFactory, AsyncSession
 from .models import User
 from .schemas import UserSchema
+
+from src.session import AsyncSessionFactory, AsyncSession
+
 from src.auth.schemas import UserCreate
 from src.auth.utils import hash_password
 
+from src import exceptions as exc
 
-T = TypeVar('T', bound=Union[str, int])
+
+T = TypeVar('T', str, int, bool)
+U = TypeVar('U', str, int, bool)
 
 
 class UserCRUD(AsyncSessionFactory):
@@ -40,11 +45,9 @@ class UserCRUD(AsyncSessionFactory):
              User obj or None.
         """
         session: AsyncSession = await super().get_session()
-        if not getattr(User, field):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Attr does not exist'
-            )
+        if not hasattr(User, field):
+            raise exc.NonExistedAttributeException
+
         # noinspection PyTypeChecker
         stmt = select(User).where(getattr(User, field) == value)
         response = await session.execute(stmt)
@@ -100,11 +103,9 @@ class UserCRUD(AsyncSessionFactory):
             field: A user model field name.
             value: A user field value.
         """
-        if not getattr(User, field):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Attr does not exist'
-            )
+        if not hasattr(User, field):
+            raise exc.NonExistedAttributeException
+
         # noinspection PyTypeChecker
         stmt = delete(User).where(getattr(User, field) == value)
         session: AsyncSession = await super().get_session()
@@ -116,7 +117,7 @@ class UserCRUD(AsyncSessionFactory):
             self,
             field: str,
             value: T,
-            data: Dict[str, T]
+            data: Dict[str, U]
     ) -> User:
         """
         Update user.
@@ -126,14 +127,20 @@ class UserCRUD(AsyncSessionFactory):
             value (string/integer): Value to find user.
             data (dictionary): Data to update user.
         Returns:
-            User obj.
+            User object.
+        Raises:
+            UserNotFoundException: If user not found by given value.
         """
-        user: User = await self.get_user(field, value)
+        user: Optional[User] = await self.get_user(field, value)
+        if not user:
+            raise exc.UserNotFoundException
+
         session: AsyncSession = await super().get_session()
         try:
             stmt = update(User).values(**data)
             await session.execute(stmt)
             await session.commit()
+            await session.refresh(user)
             return user
         finally:
             await session.close()

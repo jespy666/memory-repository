@@ -1,11 +1,18 @@
 from typing import Optional
 
-from fastapi import HTTPException, status, Request
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 
+from src.auth.utils import issue_token
 from src.auth.utils import verify_token
+
 from src.users.crud import UserCRUD
 from src.users.models import User
+
+from src.config import settings
+
+from src import exceptions as exc
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/login/')
@@ -13,30 +20,67 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/login/')
 
 async def get_current_user(request: Request) -> User:
     """
-    Getting current user.
+    Getting current user and checking out the access and refresh JWT tokens.
+    Re-issue a new access token if refresh token still valid.
 
     Args:
-        request (Request object): FastAPI request object.
+        request (Request object): Starlette request object.
     Returns:
-        User object.
+        User object if all checks passed.
     Raises:
-        HTTPException: If user not found, if user not authenticated, if jwt
-        token is invalid.
+        HTTPException:
+            cases:
+                - Refresh token is missing, invalid or expired.
+                - Access token is missing or invalid.
     """
+    # getting tokens from cookies
     access_token: Optional[str] = request.cookies.get('access_token')
-    email: Optional[str] = verify_token(access_token)
-    # Check if jwt token is valid
+    refresh_token: Optional[str] = request.cookies.get('refresh_token')
+
+    # check refresh token getting from cookies
+    if not refresh_token:
+        raise exc.InvalidTokenException
+
+    email: Optional[str] = verify_token(refresh_token)
+
+    # check refresh token is valid
     if not email:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Invalid auth credentials'
-        )
+        raise exc.InvalidTokenException
+
     crud = UserCRUD()
-    user: Optional[User] = await crud.get_user('email', email)
-    # check if user does not exist
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='User not found'
-        )
-    return user
+    # check access token is valid
+    try:
+        email: Optional[str] = verify_token(access_token)
+        user: Optional[User] = await crud.get_user('email', email)
+        # check user exists
+        if not user:
+            raise exc.UserNotFoundException
+
+        # well done, return current user
+        return user
+    except HTTPException as e:
+        # access token expired case
+        if e.detail == "Token expired":
+            # generate new access token
+            new_access_token = issue_token(
+                data={"sub": email},
+                expires_delta=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+            )
+
+            # update response with new token cookie
+            response = JSONResponse(content={"detail": "Token refreshed"})
+            response.set_cookie(
+                key="access_token",
+                value=new_access_token,
+                httponly=True
+            )
+            request.state.refresh_response = response
+
+            # getting current user
+            user: Optional[User] = await crud.get_user('email', email)
+            if not user:
+                raise exc.UserNotFoundException
+            return user
+        else:
+            # raise other errors if there are
+            raise e

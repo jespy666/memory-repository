@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     # JWT related settings
     SECRET_KEY: str = os.getenv('SECRET_KEY')
     ALGORITHM: str = os.getenv('ALGORITHM')
-    TOKEN_EXPIRE_MINUTES: int = os.getenv('TOKEN_EXPIRE_MINUTES')
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = os.getenv('REFRESH_TOKEN_EXPIRE_MINUTES')  # noqa: E501
 
     # SMTP related settings
     SMTP_HOST: str = os.getenv('SMTP_HOST')

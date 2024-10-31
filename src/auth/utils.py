@@ -18,11 +18,6 @@ V = TypeVar('V', bound=Union[str, int])
 def hash_password(password: str) -> str:
     """
     Hashed user password.
-
-    Args:
-        password (string): Source user password.
-    Returns:
-        Hashed user password.
     """
     return pwd_context.hash(password)
 
@@ -30,36 +25,26 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify hashed user password.
-
-    Args:
-        plain_password (string): Source user password.
-        hashed_password (string): Hashed source user password.
-    Returns:
-        True if passwords match, False otherwise.
     """
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(data: Dict[str, V], expires_delta: int = None):
+def issue_token(data: Dict[str, V], expires_delta: int) -> str:
     """
-    Generate access jwt token.
+    Generate new jwt token (access or refresh).
 
     Args:
         data (dictionary): User info.
         expires_delta (optional): Expire token time in minutes.
     Returns:
-        Activation token as string.
+        JWT token as string.
     """
+    # copy source dict
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(tz=timezone.utc) + timedelta(expires_delta)
-    else:
-        expire = (
-            datetime.now(tz=timezone.utc)
-            +
-            timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES)
-        )
+    # set expire date and time
+    expire = datetime.now(tz=timezone.utc) + timedelta(minutes=expires_delta)
     to_encode.update({"exp": int(expire.timestamp())})
+    # issue a new token
     encoded_jwt = jwt.encode(
         to_encode,
         settings.SECRET_KEY,
@@ -70,15 +55,14 @@ def create_access_token(data: Dict[str, V], expires_delta: int = None):
 
 def verify_token(token: str) -> str:
     """
-    Verify JWT token
+    Verify JWT token validity.
 
     Args:
         token (string): JWT token.
     Returns:
         Email addr as string.
     Raises:
-        ExpiredSignatureError: If JWT token expired.
-        InvalidTokenError: If JWT token is invalid.
+        HTTPException: If JWT token expired or JWT token is invalid.
     """
     try:
         payload = jwt.decode(

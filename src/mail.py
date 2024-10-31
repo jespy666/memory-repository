@@ -50,8 +50,8 @@ async def send_welcome_msg(to_addr: str) -> None:
         to_addr (string): Addressee of the letter.
     """
     message = MIMEText(
-        f'Салам бро, добро пожаловать в Единое Хранилище Воспоминаний!:\n'
-        f'Пойми насколько тут все круто!'
+        'Салам бро, добро пожаловать в Единое Хранилище Воспоминаний!:\n'
+        'Пойми насколько тут все круто!'
     )
     message["Subject"] = "Добро пожаловать в EXB"
     message["From"] = settings.SMTP_USER

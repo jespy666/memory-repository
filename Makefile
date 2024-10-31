@@ -10,3 +10,6 @@ migrate:
 
 dev:
 	poetry run python3 -m src.app
+
+lint:
+	poetry run ruff check

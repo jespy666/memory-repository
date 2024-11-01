@@ -21,4 +21,4 @@ test:
 	poetry run pytest --disable-warnings
 
 cov:
-	poetry run pytest --disable-warnings --cov=src
+	poetry run pytest --disable-warnings --cov=src --cov-report=xml

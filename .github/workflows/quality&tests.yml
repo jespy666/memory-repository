@@ -48,6 +48,4 @@ jobs:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageCommand: make cov
-          coverageLocations: 'coverage.xml'
-          coverageType: 'cobertura'
           debug: true

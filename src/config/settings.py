@@ -30,7 +30,14 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = os.getenv('SMTP_PASSWORD')
     SMTP_PORT: int = os.getenv('SMTP_PORT')
 
-    def get_connection_string(self) -> str:
+    # Google OAuth2 settings
+    GOOGLE_CLIENT_ID: str = os.getenv('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET: str = os.getenv('GOOGLE_CLIENT_SECRET')
+    GOOGLE_REDIRECT_URI: str = os.getenv('GOOGLE_REDIRECT_URI')
+    GOOGLE_AUTH_URI: str = os.getenv('GOOGLE_AUTH_URI')
+
+    @property
+    def psql_url(self) -> str:
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:"
             f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"

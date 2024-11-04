@@ -77,3 +77,15 @@ class InvalidPasswordException(HTTPException):
             status_code=status.HTTP_403_FORBIDDEN,
             detail=detail
         )
+
+
+class BadRequestException(HTTPException):
+    """
+    Exception for 400 code with custom msg.
+    """
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detail
+        )

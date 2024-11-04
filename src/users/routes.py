@@ -1,17 +1,17 @@
 import asyncio
 
 from fastapi.routing import APIRouter
-from fastapi import HTTPException, status, Request
+from fastapi import status, Request
 
-from typing import List, Sequence, Optional, TypeVar, Union, Dict
+from typing import List, Sequence, Optional, TypeVar, Union, Dict, Any
 
 from src.config import settings
 
 from src.mail import send_activation_email_task
 
-from src.auth.utils import issue_token
+from src.auth.utils import issue_token, verify_password, hash_password
 
-from src.users.schemas import UserSchema, UserUpdate
+from src.users.schemas import UserSchema, UserUpdate, PasswordUpdate
 from src.users.models import User
 from src.users.crud import UserCRUD
 
@@ -98,10 +98,7 @@ async def get_user(
     crud = UserCRUD()
     user: Optional[User] = await crud.get_user('id', user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='User not found'
-        )
+        raise exc.UserNotFoundException
     return user
 
 
@@ -128,22 +125,66 @@ async def delete_user(
 async def update_user(
         current_user: user_dependency,
         user_id: int,
-        data: Dict[str, T]
-) -> User:
+        data: UserUpdate
+) -> UserUpdate:
     """
-    Update user fields. Personality required.
+    Update user endpoint. Auth and current user required.
+    Admin can edit any user.
 
     Args:
         user_id (integer): An user ID.
         data (dictionary): Updated user fields.
-        current_user (User obj): Current user from cookies.
+        current_user (User obj): User dependency.
     Raises:
-        HTTPException: If user trying to change another user or user does not
-        exist.
+        HTTPException: If user trying to change another user.
     """
     if not (current_user.id == user_id or current_user.is_admin):
         raise exc.AccessDeniedException
 
     crud = UserCRUD()
-    updated_user: User = await crud.update_user('id', user_id, data)
+    updated_user: UserUpdate = await crud.update_user(
+        'id',
+        user_id,
+        data.model_dump()
+    )
     return updated_user
+
+
+@user_router.put('/password/{user_id}/')
+async def update_password(
+        current_user: user_dependency,
+        user_id: int,
+        data: PasswordUpdate
+) -> Dict[str, Any]:
+    """
+    Endpoint to change password. Require self user.
+
+    Args:
+        current_user (User obj.): User dependency.
+        user_id (integer): User ID.
+        data: Password change schema.
+    Returns:
+        Message with success info.
+    Raises:
+        AccessDeniedException: If user update password of other user.
+        UserNotFoundException: If user not found.
+        InvalidPasswordException: If wrong old password.
+    """
+    if not current_user.id == user_id:
+        raise exc.AccessDeniedException
+
+    crud = UserCRUD()
+    user: Optional[User] = await crud.get_user('id', user_id)
+    if not user:
+        raise exc.UserNotFoundException
+
+    if not verify_password(data.old_password, user.password):
+        raise exc.InvalidPasswordException
+
+    await crud.update_user(
+        'id',
+        user_id,
+        {'password': hash_password(data.new_password)}
+    )
+
+    return {"detail": "Password successfully updated!"}

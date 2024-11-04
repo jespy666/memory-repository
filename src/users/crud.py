@@ -4,8 +4,8 @@ from typing import TypeVar, Sequence, Dict, Optional
 
 from sqlalchemy import select, delete
 
-from .models import User
-from .schemas import UserSchema
+from src.users.models import User
+from src.users.schemas import UserSchema, UserUpdate
 
 from src.session import AsyncSessionFactory, AsyncSession
 
@@ -118,7 +118,7 @@ class UserCRUD(AsyncSessionFactory):
             field: str,
             value: T,
             data: Dict[str, U]
-    ) -> User:
+    ) -> UserUpdate:
         """
         Update user.
 
@@ -138,13 +138,15 @@ class UserCRUD(AsyncSessionFactory):
         session: AsyncSession = await super().get_session()
         try:
             for key, val in data.items():
-                if hasattr(user, key):
+                if hasattr(user, key) and val:
                     setattr(user, key, val)
-                else:
-                    raise exc.NonExistedAttributeException
             session.add(user)
             await session.commit()
             await session.refresh(user)
-            return user
+            return UserUpdate(
+                email=user.email,
+                name=user.name,
+                username=user.username,
+            )
         finally:
             await session.close()

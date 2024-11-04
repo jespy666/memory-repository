@@ -1,3 +1,5 @@
+import secrets
+
 import jwt
 
 from datetime import datetime, timedelta, timezone
@@ -27,6 +29,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Verify hashed user password.
     """
     return pwd_context.verify(plain_password, hashed_password)
+
+
+def generate_random_password(length: int = 12) -> str:
+    """
+    Generate random password. Initial length - 12 symbols.
+    """
+    alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 def issue_token(data: Dict[str, V], expires_delta: int) -> str:

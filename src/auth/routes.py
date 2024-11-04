@@ -16,6 +16,7 @@ from src.mail import (
 
 from src.auth.schemas import UserCreate, Token
 from src.auth.utils import verify_token, issue_token, verify_password
+from src.auth.oauth2 import oauth2_router
 
 from src.config import settings
 
@@ -23,6 +24,9 @@ from src import exceptions as exc
 
 
 auth_router = APIRouter()
+
+# extend with oauth2
+auth_router.include_router(oauth2_router)
 
 
 @auth_router.post(

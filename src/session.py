@@ -14,7 +14,7 @@ class AsyncSessionFactory:
     conf: Settings = settings
 
     def __init__(self) -> None:
-        self.db_url: str = self.conf.get_connection_string()
+        self.db_url: str = self.conf.psql_url
         self.engine: AsyncEngine = create_async_engine(self.db_url)
         self.session_factory = async_sessionmaker(
             bind=self.engine,

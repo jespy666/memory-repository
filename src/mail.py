@@ -8,6 +8,8 @@ from fastapi import Request
 
 from src.config import settings
 
+from src.users.schemas import UserSchema
+
 
 async def send_activation_email(
         request: Request,
@@ -68,6 +70,35 @@ async def send_welcome_msg(to_addr: str) -> None:
         )
 
 
+async def send_welcome_google_account(
+        to_addr: str,
+        user_schema: UserSchema
+) -> None:
+    """
+    Send welcome message to user email if user sign up via Google.
+
+    Args:
+        to_addr (string): Addressee of the letter.
+        user_schema (dict): Data of new user.
+    """
+    message = MIMEText(
+        f'Приветствуем, пользователь Google!:\n'
+        f'Добро пожаловать!\n\n'
+        f'Данные: {user_schema}'
+    )
+    message["Subject"] = "Добро пожаловать в EXB"
+    message["From"] = settings.SMTP_USER
+    message["To"] = to_addr
+
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        server.starttls()
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.sendmail(
+            settings.SMTP_USER, to_addr,
+            message.as_string()
+        )
+
+
 async def send_activation_email_task(
         request: Request,
         email: str,
@@ -86,3 +117,14 @@ async def send_welcome_msg_task(to_addr: str) -> None:
     """
     await send_welcome_msg(to_addr)
     logger.info('Welcome letter was send')
+
+
+async def send_welcome_google_task(
+        to_addr: str,
+        user_schema: UserSchema
+) -> None:
+    """
+    Background task for welcome email via Google.
+    """
+    await send_welcome_google_account(to_addr, user_schema)
+    logger.info('Welcome letter was send (Oauth2 - google)')

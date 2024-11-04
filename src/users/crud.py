@@ -58,7 +58,8 @@ class UserCRUD(AsyncSessionFactory):
     async def create_user(
             self,
             user_data: UserCreate,
-            superuser: bool = False
+            superuser: bool = False,
+            active: bool = False
     ) -> UserSchema:
         """
         Create new user.
@@ -67,6 +68,7 @@ class UserCRUD(AsyncSessionFactory):
             user_data: All new user data.
             superuser (boolean): A flag represented to provide new user admin
             rights.
+            active (boolean): Make user active.
         Returns:
              User represented schema.
         """

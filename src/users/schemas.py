@@ -17,6 +17,13 @@ class UserSchema(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    username: Optional[constr(min_length=1, max_length=50)] = None
+    name: Optional[constr(min_length=1, max_length=50)] = None
 
-    username: constr(min_length=1, max_length=50)
-    name: constr(min_length=1, max_length=50)
+
+class PasswordUpdate(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    old_password: Annotated[str, MinLen(8), MaxLen(120)]
+    new_password: Annotated[str, MinLen(8), MaxLen(120)]

@@ -64,3 +64,16 @@ class NonActiveUserException(HTTPException):
             status_code=status.HTTP_403_FORBIDDEN,
             detail=detail
         )
+
+
+class InvalidPasswordException(HTTPException):
+    """
+    Exception template for password change crud.
+    """
+
+    def __init__(self) -> None:
+        detail = 'Wrong password'
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=detail
+        )

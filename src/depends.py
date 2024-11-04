@@ -1,7 +1,6 @@
 from typing import Optional, Annotated
 
 from fastapi import HTTPException, Request, Depends, Response
-from fastapi.security import OAuth2PasswordBearer
 
 from src.auth.utils import issue_token
 from src.auth.utils import verify_token
@@ -12,9 +11,6 @@ from src.users.models import User
 from src.config import settings
 
 from src import exceptions as exc
-
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/login/')
 
 
 async def get_current_user(request: Request, response: Response) -> User:
